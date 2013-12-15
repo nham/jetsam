@@ -1,4 +1,4 @@
-import std.stdio, std.regex, std.contracts;
+import std.stdio, std.regex, std.variant;
 
 void main() {
     writeln("hi");
@@ -30,29 +30,6 @@ class Node(T) {
     }
 }
 
-struct Value {
-    enum Type { _tbool, _tsym, _tchar, _tvec, _tproc, _tpair, _tnum, _tstr, _tport }
-    private Type _type;
-
-    private union {
-        bool _tbool;
-        string _tsym;
-        char _tchar;
-        string _tstr;
-        double _tnum;
-    }
-
-    public:
-        void opAssign(bool v) {
-            _tbool = v;
-            _tag = Type._tbool;
-        }
-
-        bool get() {
-
-        }
-}
-
 unittest {
     Node!int x = new Node!int(33, [new Node!int(45), 
                                    new Node!int(7,
@@ -64,7 +41,16 @@ unittest {
 
 
 class Environment {
-    string[string] syms;
+    string[string] bindings;
+
+    string lookup(string s) {
+        auto p = s in bindings;
+        if (p) {
+            return *p;
+        } else {
+            throw new Exception("Identifier not found");
+        }
+    }
 }
 
 // naive approach of reading the entire program text into memory at once.
@@ -72,22 +58,39 @@ Node!string parse(string inp) {
     return new Node!string("+", [new Node!string("1"), new Node!string("2")]);
 }
 
-string eval(Node!string x, Environment env) {
+Variant eval(Node!string x, Environment env) {
+    Variant val;
     if (x.children == null) {
         if (is_symbol(x.val)) {
-            return env.syms[x.val];
+            val = env.syms[x.val];
         } else {
-            return x.val;
+            val = x.val;
         }
+        return val;
     } else if (x.val == "quote") {
         if (x.children.length != 1) {
-            return "ERROR. ALSO THIS NEEDS TO REALLY BE AN ERROR";
+            throw new Exception("too many arguments.");
         } else {
-            return x.children[0].val;
+            val = x.children[0].val;
+            return val;
+        }
+    } else if (x.val == "if") {
+        auto p = eval(x.children[0], env);
+        if (p.type != typeid(bool)) {
+            throw new Exception("First argument to 'if' is not a predicate.");
+        } else {
+            if (p == true) {
+                return eval(x.children[1], env);
+            } else {
+                return eval(x.children[2], env);
+            }
         }
     
+    } else if (x.val == "lambda") {
+        // bluh
     } else {
-        return "ERROR. ALSO THIS NEEDS TO REALLY BE AN ERROR";
+        auto f = eval(x.val, env);
+        auto chs = map!(y => eval(y, env))(x.children);
     }
 }
 
