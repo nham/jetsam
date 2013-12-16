@@ -1,4 +1,4 @@
-import std.stdio, std.regex, std.variant, std.algorithm;
+import std.stdio, std.regex, std.variant, std.array;
 
 void main() {
     writeln("hi");
@@ -82,10 +82,7 @@ class Environment {
 
 // naive approach of reading the entire program text into memory at once.
 Node!string parse(string inp) {
-    string[] sp;
-    foreach(e; splitter(inp, " ")) {
-        sp ~= e;
-    }
+    string[] sp = split(inp, " ");
 
     writeln(sp);
     Node!string curr;
