@@ -1,4 +1,4 @@
-import std.stdio, std.regex, std.variant;
+import std.stdio, std.regex, std.variant, std.algorithm;
 
 void main() {
     writeln("hi");
@@ -6,22 +6,49 @@ void main() {
     foreach(elem; test_strs) {
         writeln(elem, ": ", is_identifier(elem));
     }
+
+
+    auto env = new Environment;
+    Variant var = "abc";
+    env.bindings["x"] = var;
+    writeln(eval(new Node!string(null, "x"), env));
+//    writeln(eval(new Node!string("y"), env));
+    writeln(eval(new Node!string(null, "79"), env));
+    writeln(eval(new Node!string(null, "#t"), env));
+    writeln(eval(new Node!string(null, "\"dogs\""), env));
+    writeln(eval(new Node!string(null, "quote", [new Node!string(null, "x")]), env));
+    writeln(eval(new Node!string(null, "quote", [new Node!string(null, "y")]), env));
+
+    writeln("==============parse============");
+    auto doo = parse("( + 2 ( * 3 4 ) )");
+    assert(doo !is null);
+    doo.print();
+    writeln();
+
+    writeln("test an object tahts only been declared but not created with new");
 }
 
 class Node(T) {
     T val;
-    Node[] children;
-    this(T v) {
-        this.val = v;
+    Node!(T) parent;
+    Node!(T)[] children;
+
+    this(Node!(T) p) {
+        this.parent = p;
     }
 
-    this(T v, Node[] ch) {
+    this(Node!(T) p, T v) {
+        this.parent = p;
+        this.val = v;
+    } 
+    this(Node!(T) p, T v, Node!(T)[] ch) {
+        this.parent = p;
         this.val = v;
         this.children = ch;
     }
 
     void print() {
-        write(val, " [");
+        write("{", val, "}\n  [");
         foreach (i, ch; this.children) {
             ch.print();
             if (i != this.children.length - 1) write(", ");
@@ -41,9 +68,9 @@ unittest {
 
 
 class Environment {
-    string[string] bindings;
+    Variant[string] bindings;
 
-    string lookup(string s) {
+    Variant lookup(string s) {
         auto p = s in bindings;
         if (p) {
             return *p;
@@ -55,14 +82,55 @@ class Environment {
 
 // naive approach of reading the entire program text into memory at once.
 Node!string parse(string inp) {
-    return new Node!string("+", [new Node!string("1"), new Node!string("2")]);
+    string[] sp;
+    foreach(e; splitter(inp, " ")) {
+        sp ~= e;
+    }
+
+    writeln(sp);
+    Node!string curr;
+
+    for(auto i = 0; i < sp.length; i++) {
+        writeln("  i = ", i, ", sp[i] = ", sp[i]);
+        // if we're on the root tree, we don't need to create again. it's
+        // already created.
+        if (sp[i] == "(") {
+            if (curr is null) {
+                curr = new Node!string(null);
+            } else {
+                curr.children ~= new Node!string(curr);
+                curr = curr.children[$ - 1];
+            }
+        } else if(sp[i] == ")") {
+            if (curr.parent !is null) {
+                curr = curr.parent;
+            }
+        } else {
+            if (curr.val == "") {
+                curr.val = sp[i];
+            } else {
+                curr.children ~= new Node!string(curr, sp[i]);
+            }
+        }
+    }
+
+    writeln("about to return");
+
+    return curr;
 }
+
+/*
+unittest {
+    assert(parse("( + 2 ( * 3 4 ) )")
+    auto x = ["(", "+", "2", "(", "*", "3", "4", ")", ")"];
+}
+*/
 
 Variant eval(Node!string x, Environment env) {
     Variant val;
     if (x.children == null) {
-        if (is_symbol(x.val)) {
-            val = env.syms[x.val];
+        if (is_identifier(x.val)) {
+            val = env.lookup(x.val);
         } else {
             val = x.val;
         }
@@ -87,10 +155,14 @@ Variant eval(Node!string x, Environment env) {
         }
     
     } else if (x.val == "lambda") {
-        // bluh
+        //val = function Variant(Variant z) { return eval(
+        throw new Exception("ashkutrahsdt");
     } else {
+        /*
         auto f = eval(x.val, env);
         auto chs = map!(y => eval(y, env))(x.children);
+        */
+        throw new Exception("ashkutrahsdt");
     }
 }
 
@@ -110,8 +182,4 @@ bool is_identifier(string s) {
         return true;
     else
         return false;
-}
-
-bool is_symbol(string s) {
-    return false;
 }
