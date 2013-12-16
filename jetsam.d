@@ -1,12 +1,12 @@
 import std.stdio, std.regex, std.variant, std.array;
 
 void main() {
-    writeln("hi");
+    /*
     auto test_strs = ["hello", "409hello", "+", "-", "...", "@sym", "me@aol.com"];
     foreach(elem; test_strs) {
         writeln(elem, ": ", is_identifier(elem));
     }
-
+    */
 
     auto env = new Environment;
     Variant var = "abc";
@@ -18,6 +18,7 @@ void main() {
     writeln(eval(new Node!string(null, "\"dogs\""), env));
     writeln(eval(new Node!string(null, "quote", [new Node!string(null, "x")]), env));
     writeln(eval(new Node!string(null, "quote", [new Node!string(null, "y")]), env));
+    writeln( eval(parse("(if #f 2 3)"), env) );
 
     writeln("==============parse============");
     auto doo = parse("(+ 2 (* 3 4))");
@@ -80,6 +81,14 @@ class Environment {
     }
 }
 
+void add_builtins(ref Environment env) {
+    env.bindings["+"] = cast(Variant) function double(double a, double b) { return a + b; };
+    env.bindings["-"] = function double(double a, double b) { return a - b; };
+    env.bindings["*"] = function double(double a, double b) { return a * b; };
+    env.bindings["/"] = function double(double a, double b) { return a / b; };
+    env.bindings["hello"] = function string() { return "hello!"; };
+}
+
 // naive approach of reading the entire program text into memory at once.
 Node!string parse(string inp) {
     inp = replace(inp, "(", "( ");
@@ -129,6 +138,12 @@ Variant eval(Node!string x, Environment env) {
     if (x.children == null) {
         if (is_identifier(x.val)) {
             val = env.lookup(x.val);
+        } else if (x.val == "#t" || x.val == "#f") {
+            if (x.val) {
+                val = "#t";
+            } else {
+                val = "#f";
+            }
         } else {
             val = x.val;
         }
@@ -142,7 +157,7 @@ Variant eval(Node!string x, Environment env) {
         }
     } else if (x.val == "if") {
         auto p = eval(x.children[0], env);
-        if (p.type != typeid(bool)) {
+        if (p != "#t" && p != "#f") {
             throw new Exception("First argument to 'if' is not a predicate.");
         } else {
             if (p == true) {
@@ -156,10 +171,11 @@ Variant eval(Node!string x, Environment env) {
         //val = function Variant(Variant z) { return eval(
         throw new Exception("ashkutrahsdt");
     } else {
+        auto f = eval(new Node!string(null, x.val), env);
         /*
-        auto f = eval(x.val, env);
         auto chs = map!(y => eval(y, env))(x.children);
         */
+        return f();
         throw new Exception("ashkutrahsdt");
     }
 }
