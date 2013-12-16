@@ -20,7 +20,7 @@ void main() {
     writeln(eval(new Node!string(null, "quote", [new Node!string(null, "y")]), env));
 
     writeln("==============parse============");
-    auto doo = parse("( + 2 ( * 3 4 ) )");
+    auto doo = parse("(+ 2 (* 3 4))");
     assert(doo !is null);
     doo.print();
     writeln();
@@ -82,9 +82,10 @@ class Environment {
 
 // naive approach of reading the entire program text into memory at once.
 Node!string parse(string inp) {
+    inp = replace(inp, "(", "( ");
+    inp = replace(inp, ")", " )");
     string[] sp = split(inp, " ");
 
-    writeln(sp);
     Node!string curr;
 
     for(auto i = 0; i < sp.length; i++) {
