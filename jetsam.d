@@ -1,13 +1,6 @@
 import std.stdio, std.regex, std.variant, std.array;
 
 void main() {
-    /*
-    auto test_strs = ["hello", "409hello", "+", "-", "...", "@sym", "me@aol.com"];
-    foreach(elem; test_strs) {
-        writeln(elem, ": ", is_identifier(elem));
-    }
-    */
-
     auto env = new Environment;
     Variant var = "abc";
     env.bindings["x"] = var;
@@ -196,4 +189,17 @@ bool is_identifier(string s) {
         return true;
     else
         return false;
+}
+
+unittest {
+    auto test_strs = ["hello", "409hello", "+", "-", "...", "@sym", "me@aol.com"];
+    foreach(i, elem; test_strs) {
+        writeln(elem);
+        if (i == 1) {
+            assert(! is_identifier(elem));
+        } else {
+            assert(is_identifier(elem));
+        }
+    }
+
 }
