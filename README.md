@@ -1,1 +1,1 @@
-This is an R5RS scheme interpreter written in D.
+This is an R4RS scheme interpreter written in D.
